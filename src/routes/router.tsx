@@ -8,7 +8,7 @@ import NotFoundPage from "../pages/NotFoundPage";
 
 const router = createBrowserRouter([
   {
-    path: "./",
+    path: "/",
     element: <Layout />,
     children: [
       { index: true, element: <HomePage /> },
@@ -18,6 +18,8 @@ const router = createBrowserRouter([
       { path: "*", element: <NotFoundPage /> }
     ],
   }
-]); 
+], {
+  basename: import.meta.env.BASE_URL  
+});
 
 export default router;
