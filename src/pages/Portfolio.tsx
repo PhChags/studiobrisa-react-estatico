@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import Container from '@mui/material/Container';
 
 // Importando todas as imagens necessárias
@@ -32,23 +32,48 @@ import cliente10 from '../assets/images/cliente10.jpg';
 
 const PortfolioPage = () => {
   const [showAllTestimonials, setShowAllTestimonials] = useState(false);
+  const location = useLocation();
 
-  // Função para rolar até uma seção com base no hash da URL
+  // Efeito combinado para título, scroll e sistema de votos
   useEffect(() => {
     document.title = "Portfólio | Studio Brisa";
-    const hash = window.location.hash;
-    if (hash) {
-      const targetSection = document.querySelector(hash);
-      if (targetSection) {
-        setTimeout(() => {
-          targetSection.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
+    
+    // Função para rolar até a âncora
+    const scrollToAnchor = () => {
+      if (location.hash) {
+        const hash = location.hash.replace('#', '');
+        const element = document.getElementById(hash);
+        
+        if (element) {
+          // Delay para garantir que a página esteja renderizada
+          setTimeout(() => {
+            element.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start',
+              inline: 'nearest'
+            });
+          }, 100);
+        }
+      } else {
+        // Scroll para o topo se não houver hash
+        window.scrollTo(0, 0);
       }
-    }
+    };
+
+    scrollToAnchor();
+    
+    // Observar mudanças no hash
+    const handleHashChange = () => scrollToAnchor();
+    window.addEventListener('hashchange', handleHashChange);
     
     // Inicializar sistema de votos
     initVoteSystem();
-  }, []);
+
+    // Limpeza ao desmontar o componente
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, [location]);
 
   // Funções para gerenciar votos 
   const initVoteSystem = () => {
@@ -262,7 +287,7 @@ const PortfolioPage = () => {
       {/* Conteúdo Principal */}
       <main className="container py-5">
         {/* Sobre Mariana */}
-        <section className="about-section mb-5 bg-white p-4 rounded shadow-sm">
+        <section id="geral" className="about-section mb-5 bg-white p-4 rounded shadow-sm">
           <div className="row align-items-center">
             <div className="col-md-6">
               <img src={marianaCosta} alt="Mariana Costa" className="img-fluid rounded-circle" />

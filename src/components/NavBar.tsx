@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
 import logo from "../assets/images/logo.png";
+import AnchorLink from './AnchorLink';
 
 const NavBar = () => {
   const location = useLocation();
@@ -44,34 +45,44 @@ const NavBar = () => {
               </a>
               <ul className="dropdown-menu bg-dark-purple">
                 <li>
-                  <NavLink to="/portfolio#geral" className={({isActive}) => 
-                    `dropdown-item text-pink ${isActive ? 'active-dropdown-item' : ''}`}>
+                  <AnchorLink 
+                    to="/portfolio#geral" 
+                    className={`dropdown-item text-pink ${location.hash === '#geral' ? 'active-dropdown-item' : ''}`}
+                  >
                     Geral
-                  </NavLink>
+                  </AnchorLink>
                 </li>
                 <li>
-                  <NavLink to="/portfolio#residencial" className={({isActive}) => 
-                    `dropdown-item text-pink ${isActive ? 'active-dropdown-item' : ''}`}>
+                  <AnchorLink 
+                    to="/portfolio#residencial" 
+                    className={`dropdown-item text-pink ${location.hash === '#residencial' ? 'active-dropdown-item' : ''}`}
+                  >
                     Residencial
-                  </NavLink>
+                  </AnchorLink>
                 </li>
                 <li>
-                  <NavLink to="/portfolio#comercial" className={({isActive}) => 
-                    `dropdown-item text-pink ${isActive ? 'active-dropdown-item' : ''}`}>
+                  <AnchorLink 
+                    to="/portfolio#comercial" 
+                    className={`dropdown-item text-pink ${location.hash === '#comercial' ? 'active-dropdown-item' : ''}`}
+                  >
                     Comercial
-                  </NavLink>
+                  </AnchorLink>
                 </li>
                 <li>
-                  <NavLink to="/portfolio#verde" className={({isActive}) => 
-                    `dropdown-item text-pink ${isActive ? 'active-dropdown-item' : ''}`}>
+                  <AnchorLink 
+                    to="/portfolio#verde" 
+                    className={`dropdown-item text-pink ${location.hash === '#verde' ? 'active-dropdown-item' : ''}`}
+                  >
                     Design Verde
-                  </NavLink>
+                  </AnchorLink>
                 </li>
                 <li>
-                  <NavLink to="/portfolio#depoimentos" className={({isActive}) => 
-                    `dropdown-item text-pink ${isActive ? 'active-dropdown-item' : ''}`}>
+                  <AnchorLink 
+                    to="/portfolio#depoimentos" 
+                    className={`dropdown-item text-pink ${location.hash === '#depoimentos' ? 'active-dropdown-item' : ''}`}
+                  >
                     Depoimentos
-                  </NavLink>
+                  </AnchorLink>
                 </li>
               </ul>
             </li>
