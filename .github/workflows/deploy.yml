@@ -25,13 +25,22 @@ jobs:
       - name: Build project
         run: npm run build
 
+      # Passo para criar página 404
       - name: Create 404 page
-        run: cp dist/index.html dist/404.html  
+        run: cp dist/index.html dist/404.html
+
+      # Passo para criar arquivo .nojekyll
+      - name: Create .nojekyll file
+        run: touch dist/.nojekyll
+
+      # Passo de verificação (listar conteúdo)
+      - name: Verify dist contents
+        run: ls -R dist
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GH_PAGES_TOKEN }}
-          publish_dir: ./dist  
+          publish_dir: ./dist
           force_orphan: true
           keep_files: false
