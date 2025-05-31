@@ -176,6 +176,7 @@ const PortfolioPage = () => {
     <>
       {/* Carrossel */}
       <Container 
+        id="geral"
         maxWidth={false} 
         disableGutters 
         sx={{ 
@@ -287,7 +288,7 @@ const PortfolioPage = () => {
       {/* Conteúdo Principal */}
       <main className="container py-5">
         {/* Sobre Mariana */}
-        <section id="geral" className="about-section mb-5 bg-white p-4 rounded shadow-sm">
+        <section className="about-section mb-5 bg-white p-4 rounded shadow-sm">
           <div className="row align-items-center">
             <div className="col-md-6">
               <img src={marianaCosta} alt="Mariana Costa" className="img-fluid rounded-circle" />
