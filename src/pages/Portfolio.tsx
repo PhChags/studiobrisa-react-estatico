@@ -53,57 +53,97 @@ const PortfolioPage = () => {
   // Funções para gerenciar votos 
   const initVoteSystem = () => {
     setTimeout(() => {
-      document.querySelectorAll('.like-btn, .dislike-btn').forEach(button => {
+      document.querySelectorAll('.like-btn, .dislike-btn').forEach(buttonElement => {
+        // HTMLElement para acessar dataset
+        const button = buttonElement as HTMLElement;
+        
+        // Verifica se dataset.project existe
         const project = button.dataset.project;
+        if (!project) return;
+        
+        // Determina o tipo de botão
         const type = button.classList.contains('like-btn') ? 'like' : 'dislike';
         
+        // Recupera a contagem do localStorage
         const storedCount = localStorage.getItem(`${project}-${type}`);
-        if (storedCount !== null) {
-          button.querySelector('span').textContent = storedCount;
+        
+        // Atualiza o contador se existir
+        const countSpan = button.querySelector('span');
+        if (countSpan && storedCount !== null) {
+          countSpan.textContent = storedCount;
         }
         
+        // Verifica se o usuário já votou
         if (localStorage.getItem(`${project}-voted`) === type) {
-          button.querySelector('i').classList.replace('far', 'fas');
+          const icon = button.querySelector('i');
+          if (icon) {
+            icon.classList.replace('far', 'fas');
+          }
         }
       });
     }, 0);
   };
 
-  const handleVote = (button) => {
+  const handleVote = (button: HTMLElement) => {
+    // Obtém informações básicas do botão
     const project = button.dataset.project;
+    if (!project) return;
+    
     const isLike = button.classList.contains('like-btn');
     const type = isLike ? 'like' : 'dislike';
     const oppositeType = isLike ? 'dislike' : 'like';
-    const countElement = button.querySelector('span');
-    let count = parseInt(countElement.textContent);
     
+    // Obtém elemento de contagem
+    const countElement = button.querySelector('span');
+    if (!countElement || !countElement.textContent) return;
+    
+    let count = parseInt(countElement.textContent) || 0;
+    
+    // Verifica voto existente
     const alreadyVoted = localStorage.getItem(`${project}-voted`);
     
+    // Lógica de votação
     if (alreadyVoted === type) {
-      // Remover voto
+      // Remover voto atual
       count--;
+      countElement.textContent = count.toString();
       localStorage.removeItem(`${project}-voted`);
-      button.querySelector('i').classList.replace('fas', 'far');
+      
+      // Atualiza o ícone
+      const icon = button.querySelector('i');
+      if (icon) icon.classList.replace('fas', 'far');
+      
+      // Atualiza o armazenamento local
+      localStorage.setItem(`${project}-${type}`, count.toString());
     } else {
-      // Verificar se já votou no oposto
+      // Se já votou no oposto, remove aquele voto primeiro
       if (alreadyVoted) {
-        const oppositeButton = button.parentElement.querySelector(`.${oppositeType}-btn`);
-        const oppositeCountElement = oppositeButton.querySelector('span');
-        const oppositeCount = parseInt(oppositeCountElement.textContent);
-        
-        oppositeCountElement.textContent = oppositeCount - 1;
-        oppositeButton.querySelector('i').classList.replace('fas', 'far');
-        localStorage.removeItem(`${project}-voted`);
+        // Encontra o botão oposto
+        const oppositeButton = button.parentElement?.querySelector(`.${oppositeType}-btn`) as HTMLElement;
+        if (oppositeButton) {
+          const oppositeCountElement = oppositeButton.querySelector('span');
+          if (oppositeCountElement && oppositeCountElement.textContent) {
+            const oppositeCount = parseInt(oppositeCountElement.textContent) || 0;
+            oppositeCountElement.textContent = (oppositeCount - 1).toString();
+            localStorage.setItem(`${project}-${oppositeType}`, (oppositeCount - 1).toString());
+            
+            // Atualiza o ícone do botão oposto
+            const oppositeIcon = oppositeButton.querySelector('i');
+            if (oppositeIcon) oppositeIcon.classList.replace('fas', 'far');
+          }
+        }
       }
       
-      // Adicionar novo voto
+      // Adiciona novo voto
       count++;
+      countElement.textContent = count.toString();
       localStorage.setItem(`${project}-voted`, type);
-      button.querySelector('i').classList.replace('far', 'fas');
+      localStorage.setItem(`${project}-${type}`, count.toString());
+      
+      // Atualiza ícone
+      const icon = button.querySelector('i');
+      if (icon) icon.classList.replace('far', 'fas');
     }
-    
-    countElement.textContent = count;
-    localStorage.setItem(`${project}-${type}`, count.toString());
   };
 
   // Renderização da página
@@ -148,53 +188,75 @@ const PortfolioPage = () => {
               ></button>
             </div>
             <div className="carousel-inner">
+              {/* Item 1 - Residencial */}
               <div className="carousel-item active">
-              <img src={carousel1} className="d-block w-100" alt="Projeto Residencial" />
-              <div className="carousel-caption d-none d-md-block">
-                <h5>Residência Moderna - Niterói</h5>
-                <button 
-                  className="btn btn-purple"
-                  onClick={() => document.getElementById('residencial').scrollIntoView({ behavior: 'smooth' })}
-                >
-                  Ver Projetos Residenciais
-                </button>
+                <img src={carousel1} className="d-block w-100" alt="Projeto Residencial" />
+                <div className="carousel-caption d-none d-md-block">
+                  <h5>Residência Moderna - Niterói</h5>
+                  <button 
+                    className="btn btn-purple"
+                    onClick={() => {
+                      const element = document.getElementById('residencial');
+                      if (element) {
+                        element.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }}
+                  >
+                    Ver Projetos Residenciais
+                  </button>
+                </div>
+              </div>
+              
+              {/* Item 2 - Comercial */}
+              <div className="carousel-item">
+                <img src={carousel2} className="d-block w-100" alt="Projeto Comercial" />
+                <div className="carousel-caption d-none d-md-block">
+                  <h5>Escritório Corporativo - Rio de Janeiro</h5>
+                  <button 
+                    className="btn btn-purple"
+                    onClick={() => {
+                      const element = document.getElementById('comercial');
+                      if (element) {
+                        element.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }}
+                  >
+                    Ver Projetos Comerciais
+                  </button>
+                </div>
+              </div>
+              
+              {/* Item 3 - Verde */}
+              <div className="carousel-item">
+                <img src={carousel3} className="d-block w-100" alt="Design Sustentável" />
+                <div className="carousel-caption d-none d-md-block">
+                  <h5>Edifício Sustentável - Centro</h5>
+                  <button 
+                    className="btn btn-purple"
+                    onClick={() => {
+                      const element = document.getElementById('verde');
+                      if (element) {
+                        element.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }}
+                  >
+                    Ver Projetos Verdes
+                  </button>
+                </div>
               </div>
             </div>
-            <div className="carousel-item">
-              <img src={carousel2} className="d-block w-100" alt="Projeto Comercial" />
-              <div className="carousel-caption d-none d-md-block">
-                <h5>Escritório Corporativo - Rio de Janeiro</h5>
-                <button 
-                  className="btn btn-purple"
-                  onClick={() => document.getElementById('comercial').scrollIntoView({ behavior: 'smooth' })}
-                >
-                  Ver Projetos Comerciais
-                </button>
-              </div>
-            </div>
-            <div className="carousel-item">
-              <img src={carousel3} className="d-block w-100" alt="Design Sustentável" />
-              <div className="carousel-caption d-none d-md-block">
-                <h5>Edifício Sustentável - Centro</h5>
-                <button 
-                  className="btn btn-purple"
-                  onClick={() => document.getElementById('verde').scrollIntoView({ behavior: 'smooth' })}
-                >
-                  Ver Projetos Verdes
-                </button>
-              </div>
-            </div>
+            
+            {/* Controles de navegação */}
+            <a className="carousel-control-prev" href="#main-carousel" role="button" data-bs-slide="prev">
+              <span className="carousel-control-prev-icon" aria-hidden="true"></span>
+              <span className="sr-only">Anterior</span>
+            </a>
+            <a className="carousel-control-next" href="#main-carousel" role="button" data-bs-slide="next">
+              <span className="carousel-control-next-icon" aria-hidden="true"></span>
+              <span className="sr-only">Próximo</span>
+            </a>
           </div>
-          <a className="carousel-control-prev" href="#main-carousel" role="button" data-slide="prev">
-            <span className="carousel-control-prev-icon" aria-hidden="true"></span>
-            <span className="sr-only">Anterior</span>
-          </a>
-          <a className="carousel-control-next" href="#main-carousel" role="button" data-slide="next">
-            <span className="carousel-control-next-icon" aria-hidden="true"></span>
-            <span className="sr-only">Próximo</span>
-          </a>
         </div>
-      </div>
       </Container>
 
       {/* Conteúdo Principal */}
@@ -217,7 +279,12 @@ const PortfolioPage = () => {
                 <Link to="/contato" className="btn btn-outline-purple mr-3">Agende uma Consulta</Link>
                 <button 
                   className="btn btn-purple"
-                  onClick={() => document.getElementById('depoimentos').scrollIntoView({ behavior: 'smooth' })}
+                  onClick={() => {
+                    const depoimentos = document.getElementById('depoimentos');
+                    if (depoimentos) {
+                      depoimentos.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
                 >
                   Veja Depoimentos
                 </button>

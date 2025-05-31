@@ -22,7 +22,7 @@ const ContatoPage = () => {
     newsletter: false
   });
 
-  const formatPhoneNumber = (input) => {
+  const formatPhoneNumber = (input: string) => {
     // Remove tudo que não é dígito
     const cleaned = input.replace(/\D/g, '');
     
@@ -40,12 +40,13 @@ const ContatoPage = () => {
     return input;
   };
   // Manipulação de mudanças nos campos
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, type } = e.target;
+    const target = e.target as HTMLInputElement; // Cast para acessar 'checked' quando necessário
 
-    // Aplica formatação especial para o campo de telefone
+    // Formatação especial para o campo de telefone
     if (name === 'telefone') {
-      const formattedValue = formatPhoneNumber(value);
+      const formattedValue = formatPhoneNumber(target.value);
       setFormData(prevData => ({
         ...prevData,
         [name]: formattedValue
@@ -53,14 +54,24 @@ const ContatoPage = () => {
       return;
     }
 
-    setFormData(prevData => ({
-      ...prevData,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    // Para checkboxes
+    if (type === 'checkbox') {
+      setFormData(prevData => ({
+        ...prevData,
+        [name]: target.checked
+      }));
+    } 
+    // Para os demais campos
+    else {
+      setFormData(prevData => ({
+        ...prevData,
+        [name]: target.value
+      }));
+    }
   };
 
   // Manipulação do envio do formulário
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validação do telefone

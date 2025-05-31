@@ -1,4 +1,4 @@
-import { Container, Grid, Typography, IconButton } from '@mui/material';
+import { Container, Typography, IconButton } from '@mui/material'; // Removemos Grid
 import { styled } from '@mui/material/styles';
 import { 
   Instagram, 
@@ -11,13 +11,18 @@ import {
 const Footer = () => {
   return (
     <FooterContainer>
-      {/* Barra degradê no topo */}
       <GradientBar />
       
       <StyledContainer maxWidth="lg">
-        <Grid container spacing={4} alignItems="right" justifyContent="center">
-          {/* Coluna do Mapa */}
-          <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: 'center' }}>
+        <div style={{ 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '2rem'
+        }}>
+          {/* Container do Mapa */}
+          <MapWrapper>
             <MapContainer>
               <StyledIframe 
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3675.328661885406!2d-43.1050929246879!3d-22.902557579258616!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x99817ee58f1c1f%3A0x4c4e3caf46a9f4b8!2sAv.%20Rio%20Branco%2C%20123%20-%20Centro%2C%20Niter%C3%B3i%20-%20RJ%2C%2024030-002!5e0!3m2!1spt-BR!2sbr!4v1689209764054!5m2!1spt-BR!2sbr" 
@@ -26,10 +31,10 @@ const Footer = () => {
                 referrerPolicy="no-referrer-when-downgrade"
               />
             </MapContainer>
-          </Grid>
+          </MapWrapper>
           
-          {/* Coluna de Informações */}
-          <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: 'center' }}>
+          {/* Container das Informações */}
+          <InfoWrapper>
             <ContentContainer>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: '#fff', textAlign: 'center' }}>
                 CONTATO
@@ -79,8 +84,8 @@ const Footer = () => {
                 </SocialIconsWrapper>
               </SocialContainer>
             </ContentContainer>
-          </Grid>
-        </Grid>
+          </InfoWrapper>
+        </div>
         
         <CopyrightContainer>
           <Typography variant="body2" sx={{ color: '#ccc', textAlign: 'center' }}>
@@ -99,7 +104,7 @@ const FooterContainer = styled('footer')(({ theme }) => ({
   position: 'relative',
 }));
 
-// Barra degradê
+// Barra degradê no topo
 const GradientBar = styled('div')({
   position: 'absolute',
   top: 0,
@@ -115,13 +120,30 @@ const StyledContainer = styled(Container)({
   flexDirection: 'column',
 });
 
+// Wrappers responsivos
+const MapWrapper = styled('div')(({ theme }) => ({
+  flex: '1 1 45%',
+  minWidth: '300px',
+  maxWidth: '400px',
+  [theme.breakpoints.down('sm')]: {
+    flex: '1 1 100%',
+  },
+}));
+
+const InfoWrapper = styled('div')(({ theme }) => ({
+  flex: '1 1 45%',
+  minWidth: '300px',
+  maxWidth: '500px',
+  [theme.breakpoints.down('sm')]: {
+    flex: '1 1 100%',
+  },
+}));
+
 const MapContainer = styled('div')({
   borderRadius: '8px',
   overflow: 'hidden',
   boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-  height: '80%',
-  maxWidth: '550px',
-  width: '100%',
+  height: '100%',
 });
 
 const StyledIframe = styled('iframe')({
@@ -163,7 +185,6 @@ const SocialContainer = styled('div')(({ theme }) => ({
   width: '100%',
 }));
 
-// Wrapper para ícones sociais
 const SocialIconsWrapper = styled('div')({
   display: 'flex',
   justifyContent: 'center',
