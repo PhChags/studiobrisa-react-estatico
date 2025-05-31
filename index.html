@@ -1,24 +1,30 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-br">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Studio Brisa Arquitetura</title>
-    <link rel="stylesheet" href="/assets/index.css"> <!-- Caminho absoluto -->
+    <title>Studio Brisa</title>
   </head>
   <body>
     <div id="root"></div>
-    
+    <!-- Script de redirecionamento para rotas -->
     <script>
-      // Script de redirecionamento 
       (function() {
-        // Redireciona para a URL correta se estiver na raiz errada
-        if (window.location.pathname === '/') {
-          window.history.replaceState(null, null, '/studiobrisa-react-estatico/');
+        // Recupera a URL original do sessionStorage
+        const redirect = sessionStorage.redirect;
+        delete sessionStorage.redirect;
+        
+        // Se houver uma URL de redirecionamento e for diferente da atual
+        if (redirect && redirect !== location.href) {
+          // Atualiza o histórico sem recarregar a página
+          history.replaceState(null, null, redirect);
         }
       })();
     </script>
-    
     <script type="module" src="/src/main.tsx"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
   </body>
 </html>
