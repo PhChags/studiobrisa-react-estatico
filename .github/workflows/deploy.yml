@@ -7,12 +7,16 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write   # Adicione esta permissão
+      
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Importante para o gh-pages
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
@@ -31,5 +35,7 @@ jobs:
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GH_PAGES_TOKEN }}  # Use o token personalizado
           publish_dir: ./dist
+          force_orphan: true  # Força a criação do branch se não existir
+          keep_files: false   # Limpa o branch antes do deploy
