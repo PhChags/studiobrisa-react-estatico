@@ -1,24 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import Container from '@mui/material/Container';
+import ProjetoCard from '../components/ProjetoCard';
+import FiltroCategoria from '../components/FiltroCategoria'; 
+import { buscarProjetos, buscarPorCategoriaNome } from '../services/projetoService'; 
+import { buscarCategorias } from '../services/categoriaService'; 
+import { type Projeto } from '../interfaces/Projeto';
+import { precos } from '../data/precos';
+import { type Categoria } from '../interfaces/Categoria'; 
 
 // Importando todas as imagens necessárias
 import carousel1 from '../assets/images/carousel1.jpg';
 import carousel2 from '../assets/images/carousel2.jpg';
 import carousel3 from '../assets/images/carousel3.jpeg';
 import marianaCosta from '../assets/images/mariana-costa.jpg';
-import residencial1 from '../assets/images/residencial1.jpg';
-import residencial2 from '../assets/images/residencial2.jpg';
-import residencial3 from '../assets/images/residencial3.jpg';
-import residencial4 from '../assets/images/residencial4.jpg';
-import comercial1 from '../assets/images/comercial1.jpg';
-import comercial2 from '../assets/images/comercial2.jpg';
-import comercial3 from '../assets/images/comercial3.jpg';
-import comercial4 from '../assets/images/comercial4.jpg';
-import verde1 from '../assets/images/verde1.jpg';
-import verde2 from '../assets/images/verde2.jpeg';
-import verde3 from '../assets/images/verde3.jpg';
-import verde4 from '../assets/images/verde4.jpg';
 import cliente1 from '../assets/images/cliente1.jpg';
 import cliente2 from '../assets/images/cliente2.jpg';
 import cliente3 from '../assets/images/cliente3.jpg';
@@ -32,7 +27,101 @@ import cliente10 from '../assets/images/cliente10.jpg';
 
 const PortfolioPage = () => {
   const [showAllTestimonials, setShowAllTestimonials] = useState(false);
+  const [todosProjetos, setTodosProjetos] = useState<Projeto[]>([]); 
+  const [projetosFiltrados, setProjetosFiltrados] = useState<Projeto[]>([]); 
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [categoriaSelecionada, setCategoriaSelecionada] = useState<string>('Todas');
+  const [busca, setBusca] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [loadingCategorias, setLoadingCategorias] = useState(true);
   const location = useLocation();
+  
+  // Referência para manter o valor da busca
+  const buscaRef = useRef('');
+
+  // Função para aplicar a busca aos projetos
+  const aplicarBusca = (termo: string, projetos: Projeto[]) => {
+    if (termo.trim() === '') {
+      return projetos;
+    }
+    
+    const termoNormalizado = termo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return projetos.filter(projeto => 
+      projeto.titulo
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .includes(termoNormalizado)
+    );
+  };
+
+  // Carregar categorias e projetos iniciais
+  useEffect(() => {
+    const carregarDados = async () => {
+      try {
+        // Carregar categorias
+        const categoriasAPI = await buscarCategorias();
+        setCategorias(categoriasAPI);
+        setLoadingCategorias(false);
+        
+        // Carregar projetos
+        const projetosAPI = await buscarProjetos();
+        const projetosComPreco = projetosAPI.map(projeto => ({
+          ...projeto,
+          preco: precos[projeto.id] || 0
+        }));
+        
+        setTodosProjetos(projetosComPreco);
+        setProjetosFiltrados(projetosComPreco);
+        setLoading(false);
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        setLoading(false);
+        setLoadingCategorias(false);
+      }
+    };
+
+    carregarDados();
+  }, []);
+
+  // Função para filtrar projetos por categoria
+  const filtrarPorCategoria = useCallback(async (categoria: string) => {
+    setCategoriaSelecionada(categoria);
+    setLoading(true);
+
+    try {
+      let projetosAPI;
+      if (categoria === 'Todas') {
+        projetosAPI = await buscarProjetos();
+      } else {
+        projetosAPI = await buscarPorCategoriaNome(categoria);
+      }
+      
+      const projetosComPreco = projetosAPI.map(projeto => ({
+        ...projeto,
+        preco: precos[projeto.id] || 0
+      }));
+      
+      setTodosProjetos(projetosComPreco);
+      
+      // Aplicar a busca atual aos novos projetos
+      const projetosFiltradosAtualizados = aplicarBusca(buscaRef.current, projetosComPreco);
+      setProjetosFiltrados(projetosFiltradosAtualizados);
+    } catch (error) {
+      console.error('Erro ao filtrar projetos:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Função para filtrar projetos por título (em tempo real)
+  const filtrarPorTitulo = useCallback((termo: string) => {
+    setBusca(termo);
+    buscaRef.current = termo;
+    
+    const projetosFiltradosAtualizados = aplicarBusca(termo, todosProjetos);
+    setProjetosFiltrados(projetosFiltradosAtualizados);
+  }, [todosProjetos]);
 
   // Efeito combinado para título, scroll e sistema de votos
   useEffect(() => {
@@ -66,110 +155,11 @@ const PortfolioPage = () => {
     const handleHashChange = () => scrollToAnchor();
     window.addEventListener('hashchange', handleHashChange);
     
-    // Inicializar sistema de votos
-    initVoteSystem();
-
     // Limpeza ao desmontar o componente
     return () => {
       window.removeEventListener('hashchange', handleHashChange);
     };
   }, [location]);
-
-  // Funções para gerenciar votos 
-  const initVoteSystem = () => {
-    setTimeout(() => {
-      document.querySelectorAll('.like-btn, .dislike-btn').forEach(buttonElement => {
-        // HTMLElement para acessar dataset
-        const button = buttonElement as HTMLElement;
-        
-        // Verifica se dataset.project existe
-        const project = button.dataset.project;
-        if (!project) return;
-        
-        // Determina o tipo de botão
-        const type = button.classList.contains('like-btn') ? 'like' : 'dislike';
-        
-        // Recupera a contagem do localStorage
-        const storedCount = localStorage.getItem(`${project}-${type}`);
-        
-        // Atualiza o contador se existir
-        const countSpan = button.querySelector('span');
-        if (countSpan && storedCount !== null) {
-          countSpan.textContent = storedCount;
-        }
-        
-        // Verifica se o usuário já votou
-        if (localStorage.getItem(`${project}-voted`) === type) {
-          const icon = button.querySelector('i');
-          if (icon) {
-            icon.classList.replace('far', 'fas');
-          }
-        }
-      });
-    }, 0);
-  };
-
-  const handleVote = (button: HTMLElement) => {
-    // Obtém informações básicas do botão
-    const project = button.dataset.project;
-    if (!project) return;
-    
-    const isLike = button.classList.contains('like-btn');
-    const type = isLike ? 'like' : 'dislike';
-    const oppositeType = isLike ? 'dislike' : 'like';
-    
-    // Obtém elemento de contagem
-    const countElement = button.querySelector('span');
-    if (!countElement || !countElement.textContent) return;
-    
-    let count = parseInt(countElement.textContent) || 0;
-    
-    // Verifica voto existente
-    const alreadyVoted = localStorage.getItem(`${project}-voted`);
-    
-    // Lógica de votação
-    if (alreadyVoted === type) {
-      // Remover voto atual
-      count--;
-      countElement.textContent = count.toString();
-      localStorage.removeItem(`${project}-voted`);
-      
-      // Atualiza o ícone
-      const icon = button.querySelector('i');
-      if (icon) icon.classList.replace('fas', 'far');
-      
-      // Atualiza o armazenamento local
-      localStorage.setItem(`${project}-${type}`, count.toString());
-    } else {
-      // Se já votou no oposto, remove aquele voto primeiro
-      if (alreadyVoted) {
-        // Encontra o botão oposto
-        const oppositeButton = button.parentElement?.querySelector(`.${oppositeType}-btn`) as HTMLElement;
-        if (oppositeButton) {
-          const oppositeCountElement = oppositeButton.querySelector('span');
-          if (oppositeCountElement && oppositeCountElement.textContent) {
-            const oppositeCount = parseInt(oppositeCountElement.textContent) || 0;
-            oppositeCountElement.textContent = (oppositeCount - 1).toString();
-            localStorage.setItem(`${project}-${oppositeType}`, (oppositeCount - 1).toString());
-            
-            // Atualiza o ícone do botão oposto
-            const oppositeIcon = oppositeButton.querySelector('i');
-            if (oppositeIcon) oppositeIcon.classList.replace('fas', 'far');
-          }
-        }
-      }
-      
-      // Adiciona novo voto
-      count++;
-      countElement.textContent = count.toString();
-      localStorage.setItem(`${project}-voted`, type);
-      localStorage.setItem(`${project}-${type}`, count.toString());
-      
-      // Atualiza ícone
-      const icon = button.querySelector('i');
-      if (icon) icon.classList.replace('far', 'fas');
-    }
-  };
 
   // Renderização da página
   return (
@@ -228,7 +218,7 @@ const PortfolioPage = () => {
                       }
                     }}
                   >
-                    Ver Projetos Residenciais
+                    Ver Projetos
                   </button>
                 </div>
               </div>
@@ -247,7 +237,7 @@ const PortfolioPage = () => {
                       }
                     }}
                   >
-                    Ver Projetos Comerciais
+                    Ver Projetos
                   </button>
                 </div>
               </div>
@@ -266,7 +256,7 @@ const PortfolioPage = () => {
                       }
                     }}
                   >
-                    Ver Projetos Verdes
+                    Ver Projetos
                   </button>
                 </div>
               </div>
@@ -319,455 +309,50 @@ const PortfolioPage = () => {
           </div>
         </section>
 
-        {/* Projetos Residenciais */}
-        <section id="residencial" className="mb-5">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h2 className="text-dark-purple mb-0"><i className="fas fa-home mr-2"></i>Projetos Residenciais</h2>
-          </div>
-  
-          <div className="row project-scroll mb-4">
-            {/* Residencial 1 */}
-            <div className="col-md-4 mb-4">
-              <div className="card project-card h-100">
-                <img src={residencial1} className="card-img-top" alt="Casa Moderna" />
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h5 className="card-title mb-0">Casa Moderna - Niterói</h5>
-                    <span className="badge bg-yellow text-dark-purple">2023</span>
-                  </div>
-                  <p className="card-text">Projeto completo para residência de 350m² com integração de ambientes e vista para o mar.</p>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div className="like-buttons">
-                      <button 
-                        className="btn-like like-btn" 
-                        data-project="residencial1"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-up"></i> <span className="like-count">12</span>
-                      </button>
-                      <button 
-                        className="btn-like dislike-btn" 
-                        data-project="residencial1"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-down"></i> <span className="dislike-count">2</span>
-                      </button>
-                    </div>
-                    <button className="btn btn-sm btn-purple" data-toggle="modal" data-target="#residencialModal1">
-                      Detalhes
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Residencial 2 */}
-            <div className="col-md-4 mb-4">
-              <div className="card project-card h-100">
-                <img src={residencial2} className="card-img-top" alt="Apartamento Leblon" />
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h5 className="card-title mb-0">Apartamento Leblon</h5>
-                    <span className="badge bg-yellow text-dark-purple">2025</span>
-                  </div>
-                  <p className="card-text">Reforma completa de 180m² com integração sala-jantar e varanda gourmet.</p>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div className="like-buttons">
-                      <button 
-                        className="btn-like like-btn" 
-                        data-project="residencial2"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-up"></i> <span className="like-count">18</span>
-                      </button>
-                      <button 
-                        className="btn-like dislike-btn" 
-                        data-project="residencial2"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-down"></i> <span className="dislike-count">1</span>
-                      </button>
-                    </div>
-                    <button className="btn btn-sm btn-purple" data-toggle="modal" data-target="#residencialModal2">
-                      Detalhes
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Residencial 3 */}
-            <div className="col-md-4 mb-4">
-              <div className="card project-card h-100">
-                <img src={residencial3} className="card-img-top" alt="Casa Colonial" />
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h5 className="card-title mb-0">Casa Colonial - São Gonçalo</h5>
-                    <span className="badge bg-yellow text-dark-purple">2022</span>
-                  </div>
-                  <p className="card-text">Restauro de casa histórica com 280m² mantendo características originais.</p>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div className="like-buttons">
-                      <button 
-                        className="btn-like like-btn" 
-                        data-project="residencial3"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-up"></i> <span className="like-count">9</span>
-                      </button>
-                      <button 
-                        className="btn-like dislike-btn" 
-                        data-project="residencial3"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-down"></i> <span className="dislike-count">0</span>
-                      </button>
-                    </div>
-                    <button className="btn btn-sm btn-purple" data-toggle="modal" data-target="#residencialModal3">
-                      Detalhes
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Residencial 4 */}
-            <div className="col-md-4 mb-4">
-              <div className="card project-card h-100">
-                <img src={residencial4} className="card-img-top" alt="Cobertura Barra" />
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h5 className="card-title mb-0">Cobertura Barra</h5>
-                    <span className="badge bg-yellow text-dark-purple">2023</span>
-                  </div>
-                  <p className="card-text">Projeto de 320m² com terraço panorâmico e piscina infinita.</p>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div className="like-buttons">
-                      <button 
-                        className="btn-like like-btn" 
-                        data-project="residencial4"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-up"></i> <span className="like-count">14</span>
-                      </button>
-                      <button 
-                        className="btn-like dislike-btn" 
-                        data-project="residencial4"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-down"></i> <span className="dislike-count">2</span>
-                      </button>
-                    </div>
-                    <button className="btn btn-sm btn-purple" data-toggle="modal" data-target="#residencialModal4">
-                      Detalhes
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <Link to="#" className="btn btn-outline-purple float-right">Ver todos os residenciais →</Link>
-        </section>
-
-        {/* Projetos Comerciais */}
-        <section id="comercial" className="mb-5">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h2 className="text-dark-purple mb-0"><i className="fas fa-building mr-2"></i>Projetos Comerciais</h2>
+        {/* Projetos */}
+        <Container id="projetos">
+          {/* Barra de pesquisa */}
+          <div className="mb-3">
+            <input
+              type="text"
+              placeholder="Buscar projetos por título..."
+              className="form-control"
+              value={busca}
+              onChange={(e) => filtrarPorTitulo(e.target.value)}
+            />
           </div>
           
-          <div className="row project-scroll mb-4">
-            {/* Comercial 1 */}
-            <div className="col-md-4 mb-4">
-              <div className="card project-card h-100">
-                <img src={comercial1} className="card-img-top" alt="Escritório Corporativo" />
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h5 className="card-title mb-0">Escritório Corporativo - Centro</h5>
-                    <span className="badge bg-yellow text-dark-purple">2022</span>
-                  </div>
-                  <p className="card-text">Ambiente de trabalho moderno e funcional para 50 colaboradores.</p>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div className="like-buttons">
-                      <button 
-                        className="btn-like like-btn" 
-                        data-project="comercial1"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-up"></i> <span className="like-count">8</span>
-                      </button>
-                      <button 
-                        className="btn-like dislike-btn" 
-                        data-project="comercial1"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-down"></i> <span className="dislike-count">1</span>
-                      </button>
-                    </div>
-                    <button className="btn btn-sm btn-purple" data-toggle="modal" data-target="#comercialModal1">
-                      Detalhes
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Comercial 2 */}
-            <div className="col-md-4 mb-4">
-              <div className="card project-card h-100">
-                <img src={comercial2} className="card-img-top" alt="Restaurante Temático" />
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h5 className="card-title mb-0">Restaurante Temático - Ipanema</h5>
-                    <span className="badge bg-yellow text-dark-purple">2023</span>
-                  </div>
-                  <p className="card-text">Ambiente com 150m² inspirado na cultura carioca, com iluminação cenográfica.</p>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div className="like-buttons">
-                      <button 
-                        className="btn-like like-btn" 
-                        data-project="comercial2"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-up"></i> <span className="like-count">11</span>
-                      </button>
-                      <button 
-                        className="btn-like dislike-btn" 
-                        data-project="comercial2"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-down"></i> <span className="dislike-count">0</span>
-                      </button>
-                    </div>
-                    <button className="btn btn-sm btn-purple" data-toggle="modal" data-target="#comercialModal2">
-                      Detalhes
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+          {/* Filtro por categoria */}
+          {!loadingCategorias && (
+            <FiltroCategoria 
+              categorias={categorias}
+              categoriaSelecionada={categoriaSelecionada}
+              onCategoriaChange={filtrarPorCategoria}
+            />
+          )}
 
-            {/* Comercial 3 */}
-            <div className="col-md-4 mb-4">
-              <div className="card project-card h-100">
-                <img src={comercial3} className="card-img-top" alt="Loja Conceito" />
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h5 className="card-title mb-0">Loja Conceito - Shopping Leblon</h5>
-                    <span className="badge bg-yellow text-dark-purple">2023</span>
-                  </div>
-                  <p className="card-text">Design de 120m² para marca de moda sustentável com elementos reciclados.</p>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div className="like-buttons">
-                      <button 
-                        className="btn-like like-btn" 
-                        data-project="comercial3"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-up"></i> <span className="like-count">9</span>
-                      </button>
-                      <button 
-                        className="btn-like dislike-btn" 
-                        data-project="comercial3"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-down"></i> <span className="dislike-count">1</span>
-                      </button>
-                    </div>
-                    <button className="btn btn-sm btn-purple" data-toggle="modal" data-target="#comercialModal3">
-                      Detalhes
-                    </button>
-                  </div>
-                </div>
+          {loading ? (
+            <div className="text-center my-5">
+              <div className="spinner-border text-pink" role="status">
+                <span className="visually-hidden">Carregando...</span>
               </div>
+              <p className="mt-2">Carregando projetos...</p>
             </div>
-
-            {/* Comercial 4 */}
-            <div className="col-md-4 mb-4">
-              <div className="card project-card h-100">
-                <img src={comercial4} className="card-img-top" alt="Clínica Médica" />
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h5 className="card-title mb-0">Clínica Médica - Botafogo</h5>
-                    <span className="badge bg-yellow text-dark-purple">2023</span>
-                  </div>
-                  <p className="card-text">Projeto de 300m² com 8 consultórios, recepção acolhedora e fluxo otimizado.</p>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div className="like-buttons">
-                      <button 
-                        className="btn-like like-btn" 
-                        data-project="comercial4"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-up"></i> <span className="like-count">6</span>
-                      </button>
-                      <button 
-                        className="btn-like dislike-btn" 
-                        data-project="comercial4"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-down"></i> <span className="dislike-count">0</span>
-                      </button>
-                    </div>
-                    <button className="btn btn-sm btn-purple" data-toggle="modal" data-target="#comercialModal4">
-                      Detalhes
-                    </button>
-                  </div>
+          ) : projetosFiltrados.length > 0 ? (
+            <div className="row">
+              {projetosFiltrados.map(projeto => (
+                <div className="col-md-4 mb-4" key={projeto.id}>
+                  <ProjetoCard projeto={projeto} showComprar={true} />
                 </div>
-              </div>
+              ))}
             </div>
-          </div>
-          <Link to="#" className="btn btn-outline-purple float-right">Ver todos os comerciais →</Link>
-        </section>
-
-        {/* Design Verde */}
-        <section id="verde" className="mb-5">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h2 className="text-dark-purple mb-0"><i className="fas fa-leaf mr-2"></i>Design Verde</h2>
-          </div>
-          
-          <div className="row project-scroll mb-4">
-            {/* Verde 1 */}
-            <div className="col-md-4 mb-4">
-              <div className="card project-card h-100">
-                <img src={verde1} className="card-img-top" alt="Casa Sustentável" />
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h5 className="card-title mb-0">Casa Sustentável - Maricá</h5>
-                    <span className="badge bg-yellow text-dark-purple">2022</span>
-                  </div>
-                  <p className="card-text">Projeto com certificação LEED, utilizando energia solar e materiais reciclados.</p>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div className="like-buttons">
-                      <button 
-                        className="btn-like like-btn" 
-                        data-project="verde1"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-up"></i> <span className="like-count">15</span>
-                      </button>
-                      <button 
-                        className="btn-like dislike-btn" 
-                        data-project="verde1"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-down"></i> <span className="dislike-count">0</span>
-                      </button>
-                    </div>
-                    <button className="btn btn-sm btn-purple" data-toggle="modal" data-target="#verdeModal1">
-                      Detalhes
-                    </button>
-                  </div>
-                </div>
-              </div>
+          ) : (
+            <div className="text-center my-5">
+              <h4 className="text-muted">Nenhum projeto encontrado</h4>
+              <p>Tente alterar sua busca ou selecione outra categoria.</p>
             </div>
-            
-            {/* Verde 2 */}
-            <div className="col-md-4 mb-4">
-              <div className="card project-card h-100">
-                <img src={verde2} className="card-img-top" alt="Edifício Sustentável" />
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h5 className="card-title mb-0">Edifício Sustentável - Centro</h5>
-                    <span className="badge bg-yellow text-dark-purple">2023</span>
-                  </div>
-                  <p className="card-text">Prédio comercial com certificação LEED Platinum, 1500m².</p>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div className="like-buttons">
-                      <button 
-                        className="btn-like like-btn" 
-                        data-project="verde2"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-up"></i> <span className="like-count">10</span>
-                      </button>
-                      <button 
-                        className="btn-like dislike-btn" 
-                        data-project="verde2"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-down"></i> <span className="dislike-count">0</span>
-                      </button>
-                    </div>
-                    <button className="btn btn-sm btn-purple" data-toggle="modal" data-target="#verdeModal2">
-                      Detalhes
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Verde 3 */}
-            <div className="col-md-4 mb-4">
-              <div className="card project-card h-100">
-                <img src={verde3} className="card-img-top" alt="Casa Container" />
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h5 className="card-title mb-0">Casa Container - Itaboraí</h5>
-                    <span className="badge bg-yellow text-dark-purple">2021</span>
-                  </div>
-                  <p className="card-text">Residência de 120m² feita com containers reciclados e energia solar.</p>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div className="like-buttons">
-                      <button 
-                        className="btn-like like-btn" 
-                        data-project="verde3"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-up"></i> <span className="like-count">21</span>
-                      </button>
-                      <button 
-                        className="btn-like dislike-btn" 
-                        data-project="verde3"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-down"></i> <span className="dislike-count">2</span>
-                      </button>
-                    </div>
-                    <button className="btn btn-sm btn-purple" data-toggle="modal" data-target="#verdeModal3">
-                      Detalhes
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Verde 4 */}
-            <div className="col-md-4 mb-4">
-              <div className="card project-card h-100">
-                <img src={verde4} className="card-img-top" alt="Escritório Verde" />
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h5 className="card-title mb-0">Escritório Verde - Jardim Botânico</h5>
-                    <span className="badge bg-yellow text-dark-purple">2024</span>
-                  </div>
-                  <p className="card-text">Escritório de 200m² com telhado verde e sistema de reaproveitamento de água.</p>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div className="like-buttons">
-                      <button 
-                        className="btn-like like-btn" 
-                        data-project="verde4"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-up"></i> <span className="like-count">12</span>
-                      </button>
-                      <button 
-                        className="btn-like dislike-btn" 
-                        data-project="verde4"
-                        onClick={(e) => handleVote(e.currentTarget)}
-                      >
-                        <i className="far fa-thumbs-down"></i> <span className="dislike-count">0</span>
-                      </button>
-                    </div>
-                    <button className="btn btn-sm btn-purple" data-toggle="modal" data-target="#verdeModal4">
-                      Detalhes
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <Link to="#" className="btn btn-outline-purple float-right">Ver todos os projetos verdes →</Link>
-        </section>
+          )}
+        </Container>
 
         {/* Depoimentos */}
         <section id="depoimentos" className="mb-5">

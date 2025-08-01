@@ -5,6 +5,11 @@ import PortfolioPage from "../pages/Portfolio";
 import FaqPage from "../pages/Faq";
 import ContatoPage from "../pages/Contato";
 import NotFoundPage from "../pages/NotFoundPage";
+import LoginPage from "../pages/LoginPage";
+import CadastroPage from "../pages/CadastroPage";
+import CarrinhoPage from "../pages/CarrinhoPage";
+import FavoritosPage from "../pages/FavoritosPage";
+import AdminPage from "../pages/AdminPage";
 
 const router = createBrowserRouter([
   {
@@ -15,7 +20,12 @@ const router = createBrowserRouter([
       { path: "portfolio", element: <PortfolioPage /> },
       { path: "faq", element: <FaqPage /> },
       { path: "contato", element: <ContatoPage /> },
-      { path: "*", element: <NotFoundPage /> }
+      { path: "login", element: <LoginPage /> },
+      { path: "cadastrar", element: <CadastroPage /> },
+      { path: "carrinho", element: <CarrinhoPage /> },
+      { path: "favoritos", element: <FavoritosPage /> },
+      { path: "admin", element: <AdminPage /> },
+      { path: "*", element: <NotFoundPage /> },
     ],
   }
 ], {
